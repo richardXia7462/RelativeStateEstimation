@@ -49,9 +49,9 @@ for i = 2:nS
     imuL = [imuL; tCur, angVel, acc];
     iteIMUL = j;
 
-    [del_a_f,del_v_f,del_p_f,CovF,JacoInt,CovG,CovA] = preIntegrateMeasurement2(imuF(:,5:7),...
+    [del_a_f,del_v_f,del_p_f,CovF,JacoInt,CovG,CovA] = PreIntegrateMeasurement(imuF(:,5:7),...
         imuF(:,2:4),imuF(:,1),imuParameter,bg0,ba0);
-    [del_a_l,del_v_l,del_p_l,CovL,~,~,~,correl] = preIntegrateMeasurement2(imuL(:,5:7),...
+    [del_a_l,del_v_l,del_p_l,CovL,~,~,~,correl] = PreIntegrateMeasurement(imuL(:,5:7),...
         imuL(:,2:4),imuL(:,1),imuParameter,zeros(3,1),zeros(3,1)); 
     gyrol0 = imuL(1,2:4)'; gyrol1 = imuL(end,2:4)';       
     imuF = imuF(end,:);
@@ -59,8 +59,8 @@ for i = 2:nS
     T = tCur-tPre;
     tPre = tCur;
 
-    tlf = del_a_l'*(Rlf0*del_p_f-del_p_l+tlf0+(vlf0+x_crossMat(gyrol0)*tlf0)*T);
-    vlf = del_a_l'*(Rlf0*del_v_f-del_v_l+vlf0+x_crossMat(gyrol0)*tlf0)-x_crossMat(gyrol1)*tlf;
+    tlf = del_a_l'*(Rlf0*del_p_f-del_p_l+tlf0+(vlf0+GetCrossMat(gyrol0)*tlf0)*T);
+    vlf = del_a_l'*(Rlf0*del_v_f-del_v_l+vlf0+GetCrossMat(gyrol0)*tlf0)-GetCrossMat(gyrol1)*tlf;
     Rlf = del_a_l'*Rlf0*del_a_f;  
     bg = bg0; ba = ba0;
 
@@ -69,11 +69,11 @@ for i = 2:nS
         zeros(3), Rlf0, zeros(3);
         zeros(3), zeros(3), Rlf0];
     AL = [-Mr', zeros(3), zeros(3);
-        del_a_l*x_crossMat(vlf+x_crossMat(gyrol1)*tlf), -eye(3), zeros(3);
-        del_a_l*x_crossMat(tlf), zeros(3), -eye(3)];
+        del_a_l*GetCrossMat(vlf+GetCrossMat(gyrol1)*tlf), -eye(3), zeros(3);
+        del_a_l*GetCrossMat(tlf), zeros(3), -eye(3)];
     BL = [zeros(3), zeros(3);
-        -x_crossMat(tlf0), del_a_l*x_crossMat(tlf);
-        -x_crossMat(tlf0)*T, zeros(3)];
+        -GetCrossMat(tlf0), del_a_l*GetCrossMat(tlf);
+        -GetCrossMat(tlf0)*T, zeros(3)];
     S = AL*correl*BL(:,1:3)'; S = S+S';
     infoPreIntegration = inv(AF*CovF*AF'+AL*CovL*AL'+BL*CovGyro*BL'+S);
     infoBiasGyro = inv(CovG); infoBiasAcc = inv(CovA);
@@ -98,11 +98,11 @@ for i = 2:nS
     Norm = 0;
     for ite=1:1  
         Mr = del_a_l'*Rlf0*del_a_f;
-        dMr = x_LieLog(Rlf'*Mr)';
-        dMv = Rlf0*del_v_f-del_v_l+vlf0+x_crossMat(gyrol0)*tlf0-del_a_l*(vlf+x_crossMat(gyrol1)*tlf);
-        dMp = Rlf0*del_p_f-del_p_l-del_a_l*tlf+tlf0+(vlf0+x_crossMat(gyrol0)*tlf0)*T;
+        dMr = LieLog(Rlf'*Mr)';
+        dMv = Rlf0*del_v_f-del_v_l+vlf0+GetCrossMat(gyrol0)*tlf0-del_a_l*(vlf+GetCrossMat(gyrol1)*tlf);
+        dMp = Rlf0*del_p_f-del_p_l-del_a_l*tlf+tlf0+(vlf0+GetCrossMat(gyrol0)*tlf0)*T;
         errPreIntegration = [dMr; dMv; dMp];
-        jPreInt = preIntegrateMeasurementErrJacobian(del_a_f,del_v_f,del_p_f,JacoInt,Rlf0,Rlf,del_a_l,gyrol0,gyrol1,T);      
+        jPreInt = PreIntegrateMeasurementErrJacobian(del_a_f,del_v_f,del_p_f,JacoInt,Rlf0,Rlf,del_a_l,gyrol0,gyrol1,T);      
 
         r_est = []; h = []; 
         for j = 1:nFace
@@ -111,9 +111,9 @@ for i = 2:nS
                 hTemp = zeros(2*nTagPerFace,30);
                 for k = 1:nTagPerFace
                     v3D = Tcb(1:3,:)*[Rlf*F(:,(j-1)*nTagPerFace+k)+tlf; 1];
-                    rEstTemp((k-1)*2+1:k*2) = Project_PinHole(v3D, camParameters);
-                    Jac = projectJac_PinHole(v3D, camParameters);             
-                    hTemp((k-1)*2+1:k*2,1:3) = -Jac*Tcb(1:3,1:3)*Rlf*x_crossMat(F(:,(j-1)*nTagPerFace+k));
+                    rEstTemp((k-1)*2+1:k*2) = ProjectPinHole(v3D, camParameters);
+                    Jac = ProjectJacPinHole(v3D, camParameters);             
+                    hTemp((k-1)*2+1:k*2,1:3) = -Jac*Tcb(1:3,1:3)*Rlf*GetCrossMat(F(:,(j-1)*nTagPerFace+k));
                     hTemp((k-1)*2+1:k*2,4:6) = Jac*Tcb(1:3,1:3);
                 end
                 r_est = [r_est; rEstTemp];
@@ -125,9 +125,9 @@ for i = 2:nS
 
         priorState = [rotm2quat(a_f2l0_mea)';p_f2l0_mea;v_f2l0_mea;bg0_mea;ba0_mea];
         estState = [rotm2quat(Rlf0)';tlf0;vlf0;bg0;ba0];
-        [errPrior,jPrior] = priorErrJac(priorState,estState);
+        [errPrior,jPrior] = PriorErrJac(priorState,estState);
 
-        [errBiasGyro,jGyro,errBiasAcc,jAcc] = biasErrJac(bg,bg0,ba,ba0);
+        [errBiasGyro,jGyro,errBiasAcc,jAcc] = BiasErrJac(bg,bg0,ba,ba0);
 
         Jacobian = [jPreInt; jPrior; jGyro; jAcc; jacFeature];
         errAll = [errPreIntegration; errPrior; errBiasGyro; errBiasAcc; errFeature];
@@ -144,11 +144,11 @@ for i = 2:nS
         dqi = deltaX(16:18); dti = deltaX(19:21); dvi = deltaX(22:24);       
         dbgi = deltaX(25:27); dbai = deltaX(28:30); 
 
-        Rlf = Rlf*x_LieExp(dqj); tlf = tlf+dtj; vlf = vlf+dvj; 
-        Rlf0 = Rlf0*x_LieExp(dqi); tlf0 = tlf0+dti; vlf0 = vlf0+dvi;
+        Rlf = Rlf*LieExp(dqj); tlf = tlf+dtj; vlf = vlf+dvj; 
+        Rlf0 = Rlf0*LieExp(dqi); tlf0 = tlf0+dti; vlf0 = vlf0+dvi;
         bg = bg+dbgj; ba = ba+dbaj;
         bg0 = bg0+dbgi; ba0 = ba0+dbai;
-        [del_a_f,del_v_f,del_p_f] = getDeltaIntgrateMeasurement(del_a_f,del_v_f,del_p_f,JacoInt,dbgi,dbai);
+        [del_a_f,del_v_f,del_p_f] = GetDeltaIntgrateMeasurement(del_a_f,del_v_f,del_p_f,JacoInt,dbgi,dbai);
     end
 
     Rlf0 = Rlf; tlf0 = tlf; vlf0 = vlf; bg0 = bg; ba0 = ba;       

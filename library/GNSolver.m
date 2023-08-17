@@ -38,7 +38,7 @@ function [estOpt, diagP, residual] = GNSolver(iniEst, obsPixelPH, rPixel, bPixel
         
         rep=1;
         ite=0;
-        while rep==1 && ite<5
+        while rep==1 && ite<2
             v_est = []; h = []; 
             for j = 1:nFace
                 if bPixel(i, j)==1

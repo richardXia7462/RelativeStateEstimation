@@ -142,8 +142,8 @@ for i=2:NS
             hTemp = zeros(2*nTagPerFace,15);
             for k = 1:nTagPerFace
                 v3D = Tcb(1:3,:)*[a_f2l*nf(:,(j-1)*nTagPerFace+k)+pe; 1];
-                rEstTemp((k-1)*2+1:k*2) = Project_PinHole(v3D, camParameters);
-                Jacobian = projectJac_PinHole(v3D, camParameters);             
+                rEstTemp((k-1)*2+1:k*2) = ProjectPinHole(v3D, camParameters);
+                Jacobian = ProjectJacPinHole(v3D, camParameters);             
                 hTemp((k-1)*2+1:k*2,1:3) = -Jacobian*Tcb(1:3,1:3)*a_f2l*GetCrossMat(nf(:,(j-1)*nTagPerFace+k));
                 hTemp((k-1)*2+1:k*2,4:6) = Jacobian*Tcb(1:3,1:3);
             end
@@ -158,7 +158,7 @@ for i=2:NS
         gain=pCov*h'/(h*pCov*h'+rcov);
         xup=gain*(obs-r_est);    
     
-        a_f2l=a_f2l*x_LieExp(xup(1:3)');  
+        a_f2l=a_f2l*LieExp(xup(1:3)');  
         pe=pe+xup(4:6);
         ve=ve+xup(7:9);
         bge=bge+xup(10:12);

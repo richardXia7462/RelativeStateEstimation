@@ -183,7 +183,7 @@ FO{1} = obs;
 
 mark_est = markFtoEst;
 szMark = nTagPerFace*nFace*3;
-for ite=1:3
+for ite=1:1
     % First observation
     i = 1;
     Rlf = STATE{i,1}; tlf = STATE{i,2}; 
